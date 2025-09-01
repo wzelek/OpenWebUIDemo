@@ -1,0 +1,4 @@
+replicate
+streamlit
+streamlit-image-select
+requests
