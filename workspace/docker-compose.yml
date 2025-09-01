@@ -1,7 +1,6 @@
 services:
   streamlit_app:
     build: ./app
-    working_dir: /streamlit_app
     container_name: streamlit_demo
     ports:
       - "8501:8501"
