@@ -1,37 +1,60 @@
 services:
-  streamlit_app:
-    build: ./app
-    container_name: streamlit_demo
-    ports:
-      - "8501:8501"
-    restart: always
-    depends_on:
-      - openwebui
+  # streamlit_app:
+  #   build: ./app
+  #   container_name: streamlit_demo
+  #   ports:
+  #     - "8501:8501"
+  #   restart: always
+  #   depends_on:
+  #     - openwebui
+
   openwebui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:cuda 
     container_name: open-webui
     ports:
       - "3000:8080"
     volumes:
-      - openwebui_data:/app/backend/data
+      - openwebui_volume:/app/backend/data
     depends_on:
       - ollama
       - qdrant
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    restart: always
     environment:
-      RAG_EMBEDDING_MODEL: "sentence-transformers/all-mpnet-base-v2"
       RAG_QDRANT_URL: "http://qdrant:6333"
-      OFFLINE_MODE: true
-      OLLAMA_API_URL: "http://ollama:11434"
+      OLLAMA_API_URL: "http://localhost:11434"
+      VECTOR_DB: qdrant
+      QDRANT_URI: "http://qdrant:6333"
+      RAG_EMBEDDING_MODEL: "sentence-transformers/all-mpnet-base-v2"
+      USER_AGENT: "openwebui"
+      WHISPER_MODEL: large-v3
+      DEFAULT_MODEL: "llama3.2:3b"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # whisperasr:
+  #   image: onerahmet/openai-whisper-asr-webservice:latest
+  #   container_name: whisper-asr
+  #   ports:
+  #     - "9000:9000"
+  #   volumes:
+  #     - whisper_data:/root/.cache/
+  #   restart: always
+  #   environment:
+  #     ASR_MODEL: "large-v3"
+
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
     ports:
       - "11434:11434"
     volumes:
-      - C:/Users/witze/.ollama:/root/.ollama   
+      - ollama_volume:/root/.ollama   
     entrypoint: >
       sh -c "ollama serve"
     restart: always
@@ -50,13 +73,14 @@ services:
       - "6333:6333"
       - "6334:6334"
     volumes:
-      - qdrant_data:/qdrant/storage:z
+      - qdrant_volume:/qdrant/storage:z
     restart: always
-
 volumes:
-  openwebui_data:
-    external: true
+  ollama_volume: 
+    name: openwebuidemo_ollama
+  openwebui_volume:
     name: openwebuidemo_open-webui
-  qdrant_data:
-    external: true
-    name: openwebuidemo_qdrant_storage
+  qdrant_volume:
+    name: openwebuidemo_qdrant
+  # whisper_data:
+  #   name: openwebuidemo_whisper_cache
